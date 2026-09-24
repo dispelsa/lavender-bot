@@ -5,6 +5,13 @@ import os
 import yt_dlp
 from aiohttp import web
 
+# Force-loads the opus audio engine right into the system memory memory
+try:
+    import opus
+    discord.opus.load_opus(opus._path)
+except Exception:
+    pass
+
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix=".", intents=intents)
@@ -52,7 +59,6 @@ async def on_ready():
         except Exception as e:
             print(f"Failed to connect to Voice Channel: {e}")
 
-# Fake web server server to satisfy Render's port checks
 async def handle(request):
     return web.Response(text="Bot is alive!")
 
@@ -61,11 +67,9 @@ async def start_web_server():
     app.router.add_get('/', handle)
     runner = web.AppRunner(app)
     await runner.setup()
-    # Pulls the port Render expects dynamically
     port = int(os.environ.get("PORT", 10000))
     site = web.TCPSite(runner, '0.0.0.0', port)
     await site.start()
-    print(f"Web server trick running on port {port}")
 
 async def main():
     async with bot:
