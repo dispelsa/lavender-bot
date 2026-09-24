@@ -2,15 +2,7 @@ import discord
 from discord.ext import commands
 import asyncio
 import os
-import yt_dlp
 from aiohttp import web
-
-# Force-loads the opus audio engine right into the system memory memory
-try:
-    import opus
-    discord.opus.load_opus(opus._path)
-except Exception:
-    pass
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -18,39 +10,20 @@ bot = commands.Bot(command_prefix=".", intents=intents)
 
 # ---- CONFIGURATION ----
 VOICE_CHANNEL_ID = 1552806625939689472  
-LAVENDER_URL = "https://youtube.com" 
+AUDIO_FILE = "lavender.mp3"  # Reads the MP3 saved directly in your folder!
 # -----------------------
 
 async def loop_audio(vc):
-    YTDL_OPTIONS = {
-        'format': 'bestaudio/best',
-        'noplaylist': True,
-        'quiet': True,
-    }
-    FFMPEG_OPTIONS = {
-        'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
-        'options': '-vn'
-    }
-    
-    ytdl = yt_dlp.YoutubeDL(YTDL_OPTIONS)
-
     while vc.is_connected():
         if not vc.is_playing():
-            print("Extracting stream from YouTube...")
-            try:
-                loop = asyncio.get_event_loop()
-                data = await loop.run_in_executor(None, lambda: ytdl.extract_info(LAVENDER_URL, download=False))
-                audio_url = data['url']
-                
-                print("Streaming your custom Lavender Town loop!")
-                vc.play(discord.FFmpegPCMAudio(audio_url, **FFMPEG_OPTIONS))
-            except Exception as e:
-                print(f"Streaming error: {e}")
+            print("Looping local MP3 file...")
+            # Automatically replays the local file every time it finishes
+            vc.play(discord.FFmpegPCMAudio(AUDIO_FILE))
         await asyncio.sleep(2)
 
 @bot.event
 async def on_ready():
-    print(f"Success! {bot.user.name} is online and connected.")
+    print(f"Success! {bot.user.name} is online.")
     channel = bot.get_channel(VOICE_CHANNEL_ID)
     if channel and isinstance(channel, discord.VoiceChannel):
         try:
