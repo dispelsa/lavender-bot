@@ -33,7 +33,8 @@ async def on_ready():
     channel = bot.get_channel(VOICE_CHANNEL_ID)
     if channel and isinstance(channel, discord.VoiceChannel):
         try:
-            vc = await channel.connect()
+            # Forces the bot to reconnect using standard fallback pathways if voice handshakes lag
+vc = await channel.connect(reconnect=True, timeout=60.0, self_deaf=True)
             bot.loop.create_task(loop_audio(vc))
         except Exception as e:
             print(f"Failed to connect to Voice Channel: {e}")
