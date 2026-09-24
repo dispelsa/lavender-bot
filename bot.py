@@ -8,22 +8,18 @@ intents.message_content = True
 bot = commands.Bot(command_prefix=".", intents=intents)
 
 # ---- CONFIGURATION ----
-VOICE_CHANNEL_ID = 1552806625939689472  # <-- Replace with your Voice Channel ID
-# This is a public 1-Hour Lavender Town loop link:
-LAVENDER_URL = "https://www.youtube.com/watch?v=JXw5gTGasYQ&list=RDJXw5gTGasYQ&start_radio=1&t=11s" 
+VOICE_CHANNEL_ID = 1552806625939689472  # Automatically pulled from your logs!
+LAVENDER_URL = "https://youtube.com" 
 # -----------------------
 
 async def loop_audio(vc):
-    # Streaming options to keep connection stable on free hosts
     FFMPEG_OPTIONS = {
         'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
         'options': '-vn'
     }
-    
     while vc.is_connected():
         if not vc.is_playing():
             print("Streaming Lavender Town theme...")
-            # Automatically streams directly from the web layout
             vc.play(discord.FFmpegPCMAudio(LAVENDER_URL, **FFMPEG_OPTIONS))
         await asyncio.sleep(2)
 
@@ -33,8 +29,7 @@ async def on_ready():
     channel = bot.get_channel(VOICE_CHANNEL_ID)
     if channel and isinstance(channel, discord.VoiceChannel):
         try:
-            # Forces the bot to reconnect using standard fallback pathways if voice handshakes lag
-vc = await channel.connect(reconnect=True, timeout=60.0, self_deaf=True)
+            vc = await channel.connect(reconnect=True, timeout=60.0, self_deaf=True)
             bot.loop.create_task(loop_audio(vc))
         except Exception as e:
             print(f"Failed to connect to Voice Channel: {e}")
