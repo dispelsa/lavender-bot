@@ -10,7 +10,7 @@ bot = commands.Bot(command_prefix=".", intents=intents)
 # ---- CONFIGURATION ----
 VOICE_CHANNEL_ID = 1552806625939689472  
 # Uses a clean, direct audio stream URL to bypass heavy library requirements
-LAVENDER_URL = "https://discordapp.com"
+LAVENDER_URL = "https://www.youtube.com/watch?v=hYutjYdFc7I&list=RDhYutjYdFc7I&start_radio=1"
 # -----------------------
 
 async def loop_audio(vc):
