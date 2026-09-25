@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import asyncio
 import os
+import random
 from aiohttp import web
 
 intents = discord.Intents.default()
@@ -10,24 +11,47 @@ bot = commands.Bot(command_prefix=".", intents=intents)
 
 # ---- CONFIGURATION ----
 VOICE_CHANNEL_ID = 1552806625939689472  
-AUDIO_FILE = "lavender.mp3"  # Reads the MP3 saved directly in your folder!
+TEXT_CHANNEL_ID = 123456789012345678    # <-- Make sure this is your Text Channel ID!
+AUDIO_FILE = "lavender.mp3"  
 # -----------------------
 
 async def loop_audio(vc):
+    # Optimized arguments to prevent broken pipe disconnect errors
+    FFMPEG_OPTIONS = {
+        'options': '-vn -loglevel error'
+    }
+    
     while vc.is_connected():
         if not vc.is_playing():
             print("Looping local MP3 file...")
-            # Automatically replays the local file every time it finishes
-            vc.play(discord.FFmpegPCMAudio(AUDIO_FILE))
+            try:
+                vc.play(discord.FFmpegPCMAudio(AUDIO_FILE, **FFMPEG_OPTIONS))
+            except Exception as e:
+                print(f"Playback loop error: {e}")
         await asyncio.sleep(2)
+
+async def random_chat_injector():
+    await bot.wait_until_ready()
+    text_channel = bot.get_channel(TEXT_CHANNEL_ID)
+    
+    if text_channel:
+        print(f"Random chatter activated for channel: {text_channel.name}")
+        while not bot.is_closed():
+            await asyncio.sleep(1800)  # Rolls every 30 minutes
+            if random.randint(1, 3) == 1:  # 33% chance to type
+                try:
+                    await text_channel.send("lavender rules ?")
+                except Exception as e:
+                    print(f"Could not send random text: {e}")
 
 @bot.event
 async def on_ready():
     print(f"Success! {bot.user.name} is online.")
-    channel = bot.get_channel(VOICE_CHANNEL_ID)
-    if channel and isinstance(channel, discord.VoiceChannel):
+    voice_channel = bot.get_channel(VOICE_CHANNEL_ID)
+    if voice_channel and isinstance(voice_channel, discord.VoiceChannel):
         try:
-            vc = await channel.connect(reconnect=True, timeout=60.0, self_deaf=True)
+            # Force standard fallback paths to stabilize the cloud connection
+            vc = await voice_channel.connect(reconnect=True, timeout=60.0, self_deaf=True)
             bot.loop.create_task(loop_audio(vc))
         except Exception as e:
             print(f"Failed to connect to Voice Channel: {e}")
@@ -47,6 +71,7 @@ async def start_web_server():
 async def main():
     async with bot:
         bot.loop.create_task(start_web_server())
+        bot.loop.create_task(random_chat_injector())
         await bot.start(os.environ.get('DISCORD_TOKEN'))
 
 if __name__ == "__main__":
