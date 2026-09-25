@@ -16,25 +16,29 @@ AUDIO_FILE = "lavender.mp3"
 # -----------------------
 
 async def loop_audio(vc):
+    # Added bufsize to prevent memory pipe crashes when track ends
     FFMPEG_OPTIONS = {
-        'options': '-vn -loglevel error'
+        'options': '-vn -loglevel error -bufsize 64k'
     }
     
     while vc.is_connected():
         if not vc.is_playing():
-            print("Looping local MP3 file at lower volume...")
+            print("Looping local MP3 file smoothly...")
             try:
-                raw_source = discord.FFmpegPCMAudio(AUDIO_FILE, **FFMPEG_OPTIONS)
-                volume_source = discord.PCMVolumeTransformer(raw_source)
-                volume_source.volume = 0.3  # Set to 30% volume
+                # Direct volume adjustment via options instead of using the heavy PCM transformer
+                # -filter:a "volume=0.3" lowers the volume perfectly at the system level
+                STREAM_OPTIONS = {
+                    'options': '-vn -loglevel error -bufsize 64k -filter:a "volume=0.3"'
+                }
                 
-                vc.play(volume_source)
+                source = discord.FFmpegPCMAudio(AUDIO_FILE, **STREAM_OPTIONS)
+                vc.play(source)
                 
-                # --- NEW: Updates the text bubble next to the Voice Channel name ---
+                # Updates the text bubble next to the Voice Channel name
                 try:
                     await vc.channel.edit(status="Playing Lavender Town 🎵")
                 except discord.Forbidden:
-                    print("Error: Bot needs 'Manage Channel' permission in Discord to update status.")
+                    print("Error: Bot needs 'Manage Channel' permission in Discord.")
                 except Exception as e:
                     print(f"Could not update channel status: {e}")
                     
