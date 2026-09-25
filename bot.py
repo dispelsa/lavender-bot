@@ -11,12 +11,11 @@ bot = commands.Bot(command_prefix=".", intents=intents)
 
 # ---- CONFIGURATION ----
 VOICE_CHANNEL_ID = 1552806625939689472  
-TEXT_CHANNEL_ID = 123456789012345678    # <-- Ensure this is your Text Channel ID!
+TEXT_CHANNEL_ID = 123456789012345678    # <-- Ensure this matches your Text Channel ID!
 AUDIO_FILE = "lavender.mp3"  
 # -----------------------
 
 async def loop_audio(vc):
-    # Log level is suppressed to ensure absolute loop stability on Render
     FFMPEG_OPTIONS = {
         'options': '-vn -loglevel error'
     }
@@ -25,14 +24,20 @@ async def loop_audio(vc):
         if not vc.is_playing():
             print("Looping local MP3 file at lower volume...")
             try:
-                # 1. Loads the source file into an FFmpeg stream
                 raw_source = discord.FFmpegPCMAudio(AUDIO_FILE, **FFMPEG_OPTIONS)
-                # 2. Wraps it in a volume transformer class
                 volume_source = discord.PCMVolumeTransformer(raw_source)
-                # 3. Sets the volume (0.3 = 30% of normal volume)
-                volume_source.volume = 0.3
+                volume_source.volume = 0.3  # Set to 30% volume
                 
                 vc.play(volume_source)
+                
+                # --- NEW: Updates the text bubble next to the Voice Channel name ---
+                try:
+                    await vc.channel.edit(status="Playing Lavender Town 🎵")
+                except discord.Forbidden:
+                    print("Error: Bot needs 'Manage Channel' permission in Discord to update status.")
+                except Exception as e:
+                    print(f"Could not update channel status: {e}")
+                    
             except Exception as e:
                 print(f"Playback loop error: {e}")
         await asyncio.sleep(2)
@@ -55,7 +60,7 @@ async def random_chat_injector():
 async def on_ready():
     print(f"Success! {bot.user.name} is online.")
     
-    # --- NEW: Updates the bot's custom profile chat activity status ---
+    # Updates the bot's custom profile status (underneath its name)
     custom_status = discord.Activity(type=discord.ActivityType.playing, name="Lavender Town 🎵")
     await bot.change_presence(activity=custom_status)
     
