@@ -11,21 +11,28 @@ bot = commands.Bot(command_prefix=".", intents=intents)
 
 # ---- CONFIGURATION ----
 VOICE_CHANNEL_ID = 1552806625939689472  
-TEXT_CHANNEL_ID = 123456789012345678    # <-- Make sure this is your Text Channel ID!
+TEXT_CHANNEL_ID = 123456789012345678    # <-- Ensure this is your Text Channel ID!
 AUDIO_FILE = "lavender.mp3"  
 # -----------------------
 
 async def loop_audio(vc):
-    # Optimized arguments to prevent broken pipe disconnect errors
+    # Log level is suppressed to ensure absolute loop stability on Render
     FFMPEG_OPTIONS = {
         'options': '-vn -loglevel error'
     }
     
     while vc.is_connected():
         if not vc.is_playing():
-            print("Looping local MP3 file...")
+            print("Looping local MP3 file at lower volume...")
             try:
-                vc.play(discord.FFmpegPCMAudio(AUDIO_FILE, **FFMPEG_OPTIONS))
+                # 1. Loads the source file into an FFmpeg stream
+                raw_source = discord.FFmpegPCMAudio(AUDIO_FILE, **FFMPEG_OPTIONS)
+                # 2. Wraps it in a volume transformer class
+                volume_source = discord.PCMVolumeTransformer(raw_source)
+                # 3. Sets the volume (0.3 = 30% of normal volume)
+                volume_source.volume = 0.3
+                
+                vc.play(volume_source)
             except Exception as e:
                 print(f"Playback loop error: {e}")
         await asyncio.sleep(2)
@@ -38,7 +45,7 @@ async def random_chat_injector():
         print(f"Random chatter activated for channel: {text_channel.name}")
         while not bot.is_closed():
             await asyncio.sleep(1800)  # Rolls every 30 minutes
-            if random.randint(1, 3) == 1:  # 33% chance to type
+            if random.randint(1, 3) == 1:
                 try:
                     await text_channel.send("lavender rules ?")
                 except Exception as e:
@@ -47,10 +54,14 @@ async def random_chat_injector():
 @bot.event
 async def on_ready():
     print(f"Success! {bot.user.name} is online.")
+    
+    # --- NEW: Updates the bot's custom profile chat activity status ---
+    custom_status = discord.Activity(type=discord.ActivityType.playing, name="Lavender Town 🎵")
+    await bot.change_presence(activity=custom_status)
+    
     voice_channel = bot.get_channel(VOICE_CHANNEL_ID)
     if voice_channel and isinstance(voice_channel, discord.VoiceChannel):
         try:
-            # Force standard fallback paths to stabilize the cloud connection
             vc = await voice_channel.connect(reconnect=True, timeout=60.0, self_deaf=True)
             bot.loop.create_task(loop_audio(vc))
         except Exception as e:
